@@ -57,18 +57,22 @@ export const myTree = {
               },
               {
                 parseJson: true, // This message will return JSON
-                template: `ok. Create a comprehensive summary for this photography project in JSON, use the best title idea, and add a kebab-case slug, start with description.
-                
-                {
-  "description": "A documentary exploration of urban beekeepers maintaining rooftop apiaries across New York City. 100 more words....",
-  "title": "Rooftop Honey: Urban Beekeepers of NYC",
-  "slug": "rooftop-honey-urban-beekeepers-nyc",
-  "photographerName": "Elena Martinez",
-  "photographerBio": "Elena Martinez is a documentary photographer specializing in environmental storytelling. With a background in biology, she bridges the gap between science communication and artistic expression through her lens. 100 more words...",
-  "photographerPortraitPhotoDescription": "Black and white portrait of Elena in her signature denim jacket, standing against a blurred cityscape with golden hour lighting, holding her trusted Hasselblad camera"
-}
+                template: `Create a comprehensive summary for this photography project in JSON. Generate a unique photographer profile that fits the project theme.
+
+  Requirements:
+  - Create a distinct photographer name (NOT Elena Martinez)
+  - Generate a unique bio relevant to this specific project's theme
+  - Make portrait description match the photographer's specialty
   
-`,
+  Format:
+  {
+    "description": "Project description...",
+    "title": "Project title",
+    "slug": "project-slug",
+    "photographerName": "Unique name here",
+    "photographerBio": "Unique bio matching project theme...",
+    "photographerPortraitPhotoDescription": "Unique portrait description..."
+  }`,
 
                 //      system:  "Return a JSON object with: description (100-500 words), title (5-100 chars), photographerName (fictive person name) (string), photographerBio (string), photographerPortraitPhotoDescription(string),  and kebab-case slug",
               },
