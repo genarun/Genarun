@@ -1,0 +1,26 @@
+{
+  "type": "module",
+  "name": "my-app",
+  "version": "1.0.0",
+  "description": "My app",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "private": true,
+  "dependencies": {
+    "clipboard": "^2.0.11",
+    "dotenv": "^16.4.5",
+    "openai": "^4.72.0",
+    "pinia": "^2.2.6",
+    "replicate": "^1.0.1",
+    "vue": "^3.5.12",
+    "vue3-json-viewer": "^2.2.2"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.1.4",
+    "vite": "^5.4.10"
+  }
+}

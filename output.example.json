@@ -1,0 +1,207 @@
+{
+  "id": 1732131213436,
+  "nodeId": "photos",
+  "timestamp": "2024-11-20T19:33:33.436Z",
+  "input": {
+    "id": "photos",
+    "type": "text-array",
+    "outputKey": "visualDescriptions",
+    "hasInputs": true,
+    "inputs": [
+      "description"
+    ],
+    "config": {
+      "prompt": [
+        {
+          "template": "Analyze and describe 5 key visual scenes or moments from this award wining photography project: ${description}",
+          "system": "Return a JSON array of 5 detailed visual descriptions"
+        }
+      ]
+    },
+    "output": {
+      "validation": {
+        "minLength": 5,
+        "required": true
+      },
+      "model": {},
+      "expectedCount": 5
+    },
+    "hasChildren": true,
+    "children": [
+      {
+        "id": "imageUrls",
+        "type": "image",
+        "hasInputs": true,
+        "inputs": [
+          "i"
+        ],
+        "config": {
+          "prompt": {
+            "prefix": "Artistic interpretation of:",
+            "template": "${i}",
+            "suffix": "in the style of fine art photography"
+          },
+          "model": {
+            "name": "image",
+            "quality": "hd"
+          }
+        },
+        "output": {
+          "validation": {},
+          "model": {
+            "name": "image",
+            "quality": "hd"
+          }
+        },
+        "hasChildren": false,
+        "children": [],
+        "expectedOutput": "https://example.com/image.jpg",
+        "isValidNode": true,
+        "validation": {}
+      }
+    ],
+    "expectedOutput": [
+      "https://example.com/image.jpg"
+    ],
+    "isValidNode": true,
+    "validation": {
+      "minLength": 5,
+      "required": true
+    }
+  },
+  "output": {
+    "id": "photos",
+    "success": true,
+    "metadata": {
+      "nodeId": "photos",
+      "startTime": 1732131213430,
+      "endTime": 1732131213435,
+      "duration": 5,
+      "type": "text-array"
+    },
+    "raw": [
+      "A woman's reflection in a rain-covered window",
+      "Empty subway platform at dawn",
+      "Solitary figure in crowded plaza",
+      "Lights reflecting in puddles at night",
+      "Shadow patterns on concrete walls"
+    ],
+    "prompt": {
+      "type": "chat",
+      "content": [
+        {
+          "role": "system",
+          "content": "Analyze and describe 5 key visual scenes or moments from this award wining photography project: "
+        }
+      ]
+    },
+    "childOutputs": {
+      "imageUrls": [
+        {
+          "id": "imageUrls",
+          "success": true,
+          "metadata": {
+            "nodeId": "imageUrls",
+            "startTime": 1732131213431,
+            "endTime": 1732131213432,
+            "duration": 1,
+            "type": "image"
+          },
+          "raw": "https://mock-image-url.com/1732131213432.jpg?prompt=Artistic interpretation of: A woman's reflection in a rain-covered window in the style of fine art photography",
+          "prompt": {
+            "type": "completion",
+            "content": "Artistic interpretation of: A woman's reflection in a rain-covered window in the style of fine art photography"
+          },
+          "childOutputs": {},
+          "output": "https://mock-image-url.com/1732131213432.jpg?prompt=Artistic interpretation of: A woman's reflection in a rain-covered window in the style of fine art photography"
+        },
+        {
+          "id": "imageUrls",
+          "success": true,
+          "metadata": {
+            "nodeId": "imageUrls",
+            "startTime": 1732131213432,
+            "endTime": 1732131213433,
+            "duration": 1,
+            "type": "image"
+          },
+          "raw": "https://mock-image-url.com/1732131213433.jpg?prompt=Artistic interpretation of: Empty subway platform at dawn in the style of fine art photography",
+          "prompt": {
+            "type": "completion",
+            "content": "Artistic interpretation of: Empty subway platform at dawn in the style of fine art photography"
+          },
+          "childOutputs": {},
+          "output": "https://mock-image-url.com/1732131213433.jpg?prompt=Artistic interpretation of: Empty subway platform at dawn in the style of fine art photography"
+        },
+        {
+          "id": "imageUrls",
+          "success": true,
+          "metadata": {
+            "nodeId": "imageUrls",
+            "startTime": 1732131213433,
+            "endTime": 1732131213434,
+            "duration": 1,
+            "type": "image"
+          },
+          "raw": "https://mock-image-url.com/1732131213434.jpg?prompt=Artistic interpretation of: Solitary figure in crowded plaza in the style of fine art photography",
+          "prompt": {
+            "type": "completion",
+            "content": "Artistic interpretation of: Solitary figure in crowded plaza in the style of fine art photography"
+          },
+          "childOutputs": {},
+          "output": "https://mock-image-url.com/1732131213434.jpg?prompt=Artistic interpretation of: Solitary figure in crowded plaza in the style of fine art photography"
+        },
+        {
+          "id": "imageUrls",
+          "success": true,
+          "metadata": {
+            "nodeId": "imageUrls",
+            "startTime": 1732131213434,
+            "endTime": 1732131213434,
+            "duration": 0,
+            "type": "image"
+          },
+          "raw": "https://mock-image-url.com/1732131213434.jpg?prompt=Artistic interpretation of: Lights reflecting in puddles at night in the style of fine art photography",
+          "prompt": {
+            "type": "completion",
+            "content": "Artistic interpretation of: Lights reflecting in puddles at night in the style of fine art photography"
+          },
+          "childOutputs": {},
+          "output": "https://mock-image-url.com/1732131213434.jpg?prompt=Artistic interpretation of: Lights reflecting in puddles at night in the style of fine art photography"
+        },
+        {
+          "id": "imageUrls",
+          "success": true,
+          "metadata": {
+            "nodeId": "imageUrls",
+            "startTime": 1732131213434,
+            "endTime": 1732131213435,
+            "duration": 1,
+            "type": "image"
+          },
+          "raw": "https://mock-image-url.com/1732131213435.jpg?prompt=Artistic interpretation of: Shadow patterns on concrete walls in the style of fine art photography",
+          "prompt": {
+            "type": "completion",
+            "content": "Artistic interpretation of: Shadow patterns on concrete walls in the style of fine art photography"
+          },
+          "childOutputs": {},
+          "output": "https://mock-image-url.com/1732131213435.jpg?prompt=Artistic interpretation of: Shadow patterns on concrete walls in the style of fine art photography"
+        }
+      ]
+    },
+    "output": [
+      "A woman's reflection in a rain-covered window",
+      "Empty subway platform at dawn",
+      "Solitary figure in crowded plaza",
+      "Lights reflecting in puddles at night",
+      "Shadow patterns on concrete walls"
+    ]
+  },
+  "cleanOutput": {
+    "0": "A woman's reflection in a rain-covered window",
+    "1": "Empty subway platform at dawn",
+    "2": "Solitary figure in crowded plaza",
+    "3": "Lights reflecting in puddles at night",
+    "4": "Shadow patterns on concrete walls"
+  }
+}
