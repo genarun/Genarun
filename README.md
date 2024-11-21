@@ -1,14 +1,26 @@
 # Genarun - gena.run
 
-**Recursive generative tree system**
+**The glue for Generative AI m**
 
-This system focuses on the assembly of complex generative pipelines mixing different models.
+The Genarun system focuses on the assembly of complex generative pipelines mixing different models.
 
 It can be used to generate data for complete websites and generative datasets.
 
-This project has been created for research purposes.
+This project has been created for research purposes in the context of building a a research-creation thesis where a photojournalism exhibition website is generated autonomously.
+
+## Why
+
+Genarun aim to offer a simple way to assemble different AI models together.
+
+It uses a flexible tree specefication to output complex JSON response and asset folders.
+
+For a broad range of GenAI projects, it replaces boilerplate code that orchestrate series of GenAi processes.
+
+Using the hosted API, you can also
 
 ## Roadmap
+
+This project is an early draft. The core functionalities are present, but there's lot that could be done to extend its potential.
 
 ### Processing Features
 
@@ -23,6 +35,8 @@ We NEED to call some external APIs. Get current weather or currently trending Ha
 #### Progressive RAG
 
 On top of providing a set of base documents, we could internalize a RAG process that re-injects selected texts that have been indexed. For less than 500 pages, we can include the entire content in the prompt. Selected node content could be classified (and retrieved) using a user-selected embedding model. For example, instruct-large could be useful to query the text, while CLIP could be useful to bridge information between text and images (i.e., find the 3 still images from the video that most closely match "video title", find text articles that might be related to a given photo).
+
+The step would need to provide the "promp template" for search, where we merge variables from previous steps, identify model and corpus used. To start, we can work externally with a RAG api that handles indexation and provides a user-friendly UI. We could use it to search a corpus of PDF documents. The RAG outputs a big txt summary that can be used as Suffix in later prompts, where relevant. It can be ran in paralell of other process to speed things up.
 
 #### Human Steps
 
@@ -139,3 +153,48 @@ Repository/
 ├── src/                        // all generated files from base template + siteGen outputs
 └── readme.md                   // info about project usage, mix of template + generated description
 ```
+
+### Online console for project managment, and running pipelines.
+
+We could use midrun layout style for the UI.
+
+A replicate or github-like UI where a user can see their Genas.
+
+We could have a store with model adapters from replicate, huggingface, etc.
+
+User could setup keys in their profile.
+
+The Core lib could run as open source. npm import.
+@genarun/core
+
+We could also include all the adapters selectively.
+
+import {replicateAdapter} from @genarun/adapters
+
+# API client
+
+Freemium.
+
+We automatically provide an API key to users.
+
+Free API use, We give a lot of FREE minutes per month for generations.
+
+We provide an API client to let users CONSUME the API
+
+const gena = new GenarunClient('apiKey')
+
+ex:
+
+params = {
+year: 2025,
+}
+
+options = {
+model: 'felix/weird',
+doneHook: mysite.com/hook/jobdone/132456,
+
+}
+
+const data = await gena.run('felix/weird')
+
+runid = gena.start( params, options) // returns a run id.
