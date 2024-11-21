@@ -16,13 +16,21 @@ It uses a flexible tree specefication to output complex JSON response and asset 
 
 For a broad range of GenAI projects, it replaces boilerplate code that orchestrate series of GenAi processes.
 
-Using the hosted API, you can also
+Using the hosted API for free (up to 100 minutes per month), or run the pipeline directly in your environement. It works in the browser, but if it's a public project, the local setup will risk exposing your underlying API keys for OpenAi or Replicate.
 
 ## Roadmap
 
 This project is an early draft. The core functionalities are present, but there's lot that could be done to extend its potential.
 
 ### Processing Features
+
+#### Adapters
+
+We need to grow the number of supported adapters. Hugging face inference, Claude and more are comming. We are debating using Langchain or another lib to standardize interaction with these models. The json response flag is important for the text nodes, so we'll have to ensure all text providers supports it before rolling out a standardized adapter.
+
+#### Local models
+
+Simple JS models (ONNX) could be run locally, especially on fast hardware. It'll be great for custom-trained models or case where we need to transfer large data volume (not great for API). Custom models will only work with the local instance, not the web api, as Gena server needs a way to run all these models.
 
 #### Random Picks in Strings
 
@@ -218,3 +226,6 @@ so we'll let user:
 Whitelist specific domains/origins via CORS
 Require signed requests with timestamps
 Add IP address restrictions where feasible
+
+For the web client, we'll just allow it to run, since it's not sharing the openAi or underlying keys, it's triggering stuff, but of less use. We can also add domain restriction or throttle, but to really be safe, it's best to also protect the key.
+The key is read-only, so not mission critical to share it, and limited scope. It can increase your bill at processing providers.
