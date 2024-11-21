@@ -110,126 +110,156 @@ export class ProcessTree {
       endTime: null,
       duration: null,
       type: node.type,
+      errors: [],
+      retryCount: 0,
     };
 
-    // Validate and prepare before queueing
-    if (node.requiredInputs) {
-      this.validateInputs(node.requiredInputs, context);
-    }
+    try {
+      // Validation logic remains the same
+      if (node.requiredInputs) {
+        this.validateInputs(node.requiredInputs, context);
+      }
 
-    const prompt = this.preparePrompt(node, context);
-    const modelConfig = node.config?.model || {};
+      const prompt = this.preparePrompt(node, context);
+      const modelConfig = node.config?.model || {};
 
-    if (prompt && prompt.content) {
-      console.log("prompt:", prompt);
-      console.log("🐈 prompt:", prompt.content);
-    }
+      if (!this.mock && !prompt) {
+        throw new Error(`Missing prompt config for node ${node.id}`);
+      }
 
-    if (!this.mock && !prompt) {
-      throw new Error(`Missing prompt config for node ${node.id}`);
-    }
+      if (node.validation?.required) {
+        this.validateRequiredProps(node);
+      }
 
-    if (node.validation?.required) {
-      this.validateRequiredProps(node);
-    }
+      this.queueManager.incrementTotal();
+      const queueType = node.type === "image" ? "image" : "text";
+      const queue = this.queueManager.getQueue(queueType);
 
-    // Increment total tasks counter
-    this.queueManager.incrementTotal();
+      // Process current node with retry logic
+      if (this.mock) {
+        raw = this.getMockResponse(node);
+      } else {
+        const processOperation = async () => {
+          switch (node.type) {
+            case "text":
+            case "text-array":
+            case "object":
+              return this.textAdapter.chat({
+                messages: prompt.content,
+                ...modelConfig,
+              });
 
-    // Get appropriate queue based on node type
-    const queueType = node.type === "image" ? "image" : "text";
-    const queue = this.queueManager.getQueue(queueType);
+            case "image":
+              return this.imageAdapter.generate(prompt.content, modelConfig);
 
-    // Process current node
-    if (this.mock) {
-      raw = this.getMockResponse(node);
-    } else {
-      try {
-        // Pass prompt and modelConfig into the queue function
+            default:
+              throw new Error(`Unknown node type: ${node.type}`);
+          }
+        };
+
         raw = await queue.add(
-          async () => {
-            switch (node.type) {
-              case "text":
-              case "text-array":
-              case "object":
-                return this.textAdapter.chat({
-                  messages: prompt.content,
-                  ...modelConfig,
-                });
-
-              case "image":
-                return this.imageAdapter.generate(prompt.content, modelConfig);
-
-              default:
-                throw new Error(`Unknown node type: ${node.type}`);
-            }
-          },
+          () =>
+            this.retryWithBackoff(
+              processOperation,
+              this.errorPolicy.maxRetries,
+              this.errorPolicy.retryDelay
+            ),
           { nodeId: node.id, type: queueType }
         );
-      } catch (error) {
-        return {
-          id: node.id,
-          success: false,
-          error: error.message,
-          metadata,
-        };
       }
-    }
 
-    output = node.type === "text-array" && !Array.isArray(raw) ? [raw] : raw;
+      output = node.type === "text-array" && !Array.isArray(raw) ? [raw] : raw;
 
-    // Process children
-    if (node.children?.length) {
-      const processChild = async (child, childContext) => {
-        const result = await this.processNode(child, childContext);
-        return { childId: child.id, result };
-      };
+      // Process children with error handling
+      if (node.children?.length) {
+        const processChild = async (child, childContext) => {
+          try {
+            const result = await this.processNode(child, childContext);
+            return { childId: child.id, result, error: null };
+          } catch (error) {
+            console.error(`Error processing child node ${child.id}:`, error);
+            if (!this.errorPolicy.continueOnChildFailure) {
+              throw error;
+            }
+            return {
+              childId: child.id,
+              result: null,
+              error: {
+                message: error.message,
+                stack: error.stack,
+                timestamp: new Date().toISOString(),
+              },
+            };
+          }
+        };
 
-      if (
-        node.type === "text-array" ||
-        node.type === "object-array" ||
-        Array.isArray(output)
-      ) {
-        node.children.forEach((child) => {
-          childOutputs[child.id] = new Array(output.length);
-        });
+        if (
+          node.type === "text-array" ||
+          node.type === "object-array" ||
+          Array.isArray(output)
+        ) {
+          node.children.forEach((child) => {
+            childOutputs[child.id] = new Array(output.length);
+          });
 
-        const childProcessingPromises = [];
+          const childProcessingPromises = [];
 
-        for (let i = 0; i < output.length; i++) {
-          const value = output[i];
+          for (let i = 0; i < output.length; i++) {
+            const value = output[i];
+            const childContext = {
+              ...context,
+              [node.outputKey]: value,
+              i: value,
+              index: i,
+            };
+
+            node.children.forEach((child) => {
+              const promise = processChild(child, childContext).then(
+                ({ childId, result, error }) => {
+                  childOutputs[childId][i] = error ? { error } : result;
+                }
+              );
+              childProcessingPromises.push(promise);
+            });
+          }
+
+          await Promise.all(childProcessingPromises);
+        } else {
           const childContext = {
             ...context,
-            [node.outputKey]: value,
-            i: value,
-            index: i,
+            [node.outputKey]: output,
           };
 
-          node.children.forEach((child) => {
-            const promise = processChild(child, childContext).then(
-              ({ childId, result }) => {
-                childOutputs[childId][i] = result;
+          const childProcessingPromises = node.children.map((child) =>
+            processChild(child, childContext).then(
+              ({ childId, result, error }) => {
+                childOutputs[childId] = error ? { error } : result;
               }
-            );
-            childProcessingPromises.push(promise);
-          });
+            )
+          );
+
+          await Promise.all(childProcessingPromises);
         }
-
-        await Promise.all(childProcessingPromises);
-      } else {
-        const childContext = {
-          ...context,
-          [node.outputKey]: output,
-        };
-
-        const childProcessingPromises = node.children.map((child) =>
-          processChild(child, childContext).then(({ childId, result }) => {
-            childOutputs[childId] = result;
-          })
-        );
-
-        await Promise.all(childProcessingPromises);
       }
+    } catch (error) {
+      metadata.errors.push({
+        message: error.message,
+        stack: error.stack,
+        timestamp: new Date().toISOString(),
+      });
+
+      if (!this.errorPolicy.returnPartialResults) {
+        throw error;
+      }
+
+      return {
+        id: node.id,
+        success: false,
+        error: error.message,
+        metadata,
+        childOutputs:
+          Object.keys(childOutputs).length > 0 ? childOutputs : undefined,
+      };
     }
 
     metadata.endTime = Date.now();
