@@ -181,7 +181,17 @@ Free API use, We give a lot of FREE minutes per month for generations.
 
 We provide an API client to let users CONSUME the API
 
-const gena = new GenarunClient('apiKey')
+const gena = new GenarunApiClient('apiKey')
+
+const genaLocal = new GenarunLocalClient({
+openaiKey= 124,
+replicateKey:1234
+///other keys, required based on your adapters
+})
+
+//if you use the local client, the generations process will happen locally and resolve at the end. No support for webhook. You can however monitor progress using the onUpdate: (event) handler in options.
+
+API needs to wrap the output in a data prop or output. So the dbug detailled response dont force syntax change.
 
 ex:
 
@@ -190,11 +200,21 @@ year: 2025,
 }
 
 options = {
-model: 'felix/weird',
+tree: 'felix/weird',
 doneHook: mysite.com/hook/jobdone/132456,
+onUpdate: (a) => console.log(a) //progress monitoring if using the local client
+detailled_response: false //default false// output not just the pretty object, but all the logs, read input, and raw generations, useful for debugging
 
 }
 
-const data = await gena.run('felix/weird')
+const data = await gena.run('felix/weird') // cleanest
 
 runid = gena.start( params, options) // returns a run id.
+
+#### api keys
+
+we want the api to be able to work fully on client, no secrets sensitive.
+so we'll let user:
+Whitelist specific domains/origins via CORS
+Require signed requests with timestamps
+Add IP address restrictions where feasible
