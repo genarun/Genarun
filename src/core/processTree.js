@@ -1,8 +1,42 @@
+import { QueueManager } from "./QueueManager.js";
+
 export class ProcessTree {
-  constructor({ textAdapter, imageAdapter, mock = false }) {
+  constructor({
+    textAdapter,
+    imageAdapter,
+    mock = false,
+    concurrency = { text: 4, image: 2 },
+    errorPolicy = {
+      continueOnChildFailure: true, // Continue processing siblings if a child fails
+      returnPartialResults: true, // Include partial results in the output
+      maxRetries: 0, // Number of retries for failed nodes
+      retryDelay: 1000, // Delay between retries in milliseconds
+    },
+  }) {
     this.textAdapter = textAdapter;
     this.imageAdapter = imageAdapter;
     this.mock = mock;
+    this.errorPolicy = errorPolicy;
+    this.queueManager = new QueueManager({ concurrency });
+
+    // Set up progress logging
+    this.queueManager.on("progress", (progress) => {
+      console.log("\n🔄 Processing Progress:");
+      console.log(`├─ Total Tasks: ${progress.total}`);
+      console.log(
+        `├─ Completed: ${progress.completed} (${progress.percentage}%)`
+      );
+      console.log(`├─ Failed: ${progress.failed}`);
+      console.log(`├─ In Progress: ${progress.inProgress}`);
+      console.log("├─ Text Queue:");
+      console.log(`│  ├─ Waiting: ${progress.queues.text.waiting}`);
+      console.log(`│  ├─ Processing: ${progress.queues.text.pending}`);
+      console.log(`│  └─ Concurrency: ${progress.queues.text.concurrency}`);
+      console.log("└─ Image Queue:");
+      console.log(`   ├─ Waiting: ${progress.queues.image.waiting}`);
+      console.log(`   ├─ Processing: ${progress.queues.image.pending}`);
+      console.log(`   └─ Concurrency: ${progress.queues.image.concurrency}`);
+    });
   }
 
   getMockResponse(node) {
@@ -40,6 +74,31 @@ export class ProcessTree {
     }
   }
 
+  async retryWithBackoff(operation, maxRetries, delay) {
+    let lastError;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        return await operation();
+      } catch (error) {
+        lastError = error;
+        if (attempt < maxRetries) {
+          console.log(
+            `Retry attempt ${
+              attempt + 1
+            }/${maxRetries} for operation after error:`,
+            error.message
+          );
+          await new Promise((resolve) =>
+            setTimeout(resolve, delay * Math.pow(2, attempt))
+          );
+        }
+      }
+    }
+
+    throw lastError;
+  }
+
   async processNode(node, context) {
     const startTime = Date.now();
     let raw;
@@ -53,19 +112,19 @@ export class ProcessTree {
       type: node.type,
     };
 
+    // Validate and prepare before queueing
     if (node.requiredInputs) {
       this.validateInputs(node.requiredInputs, context);
     }
 
-    // Prepare messages and model config
     const prompt = this.preparePrompt(node, context);
     const modelConfig = node.config?.model || {};
 
     if (prompt && prompt.content) {
-      console.log("prompt:   :", prompt);
-      console.log("🐈 prompt:   :", prompt.content);
+      console.log("prompt:", prompt);
+      console.log("🐈 prompt:", prompt.content);
     }
-    // Validate node-specific requirements
+
     if (!this.mock && !prompt) {
       throw new Error(`Missing prompt config for node ${node.id}`);
     }
@@ -74,28 +133,39 @@ export class ProcessTree {
       this.validateRequiredProps(node);
     }
 
-    // Process with unified approach
+    // Increment total tasks counter
+    this.queueManager.incrementTotal();
+
+    // Get appropriate queue based on node type
+    const queueType = node.type === "image" ? "image" : "text";
+    const queue = this.queueManager.getQueue(queueType);
+
+    // Process current node
     if (this.mock) {
       raw = this.getMockResponse(node);
     } else {
       try {
-        switch (node.type) {
-          case "text":
-          case "text-array":
-          case "object":
-            raw = await this.textAdapter.chat({
-              messages: prompt.content,
-              ...modelConfig,
-            });
-            break;
+        // Pass prompt and modelConfig into the queue function
+        raw = await queue.add(
+          async () => {
+            switch (node.type) {
+              case "text":
+              case "text-array":
+              case "object":
+                return this.textAdapter.chat({
+                  messages: prompt.content,
+                  ...modelConfig,
+                });
 
-          case "image":
-            raw = await this.imageAdapter.generate(prompt.content, modelConfig);
-            break;
+              case "image":
+                return this.imageAdapter.generate(prompt.content, modelConfig);
 
-          default:
-            throw new Error(`Unknown node type: ${node.type}`);
-        }
+              default:
+                throw new Error(`Unknown node type: ${node.type}`);
+            }
+          },
+          { nodeId: node.id, type: queueType }
+        );
       } catch (error) {
         return {
           id: node.id,
@@ -106,77 +176,87 @@ export class ProcessTree {
       }
     }
 
-    // Post-process output based on type
     output = node.type === "text-array" && !Array.isArray(raw) ? [raw] : raw;
 
-    // Validate output
-    if (node.validation?.minLength && Array.isArray(output)) {
-      if (output.length < node.validation.minLength) {
-        console.warn(
-          `Output length ${output.length} below minimum ${node.validation.minLength}`
-        );
-        /*
-        throw new Error(
-          `Output length ${output.length} below minimum ${node.validation.minLength}`
-        );*/
-      }
-    }
-
-    // Process children with array handling
+    // Process children
     if (node.children?.length) {
+      const processChild = async (child, childContext) => {
+        const result = await this.processNode(child, childContext);
+        return { childId: child.id, result };
+      };
+
       if (
         node.type === "text-array" ||
         node.type === "object-array" ||
         Array.isArray(output)
       ) {
-        // Initialize array outputs for each child
         node.children.forEach((child) => {
-          childOutputs[child.id] = [];
+          childOutputs[child.id] = new Array(output.length);
         });
 
-        // Process each array item
+        const childProcessingPromises = [];
+
         for (let i = 0; i < output.length; i++) {
           const value = output[i];
           const childContext = {
             ...context,
-            //  [node.outputKey]: output[i],
-            //  i, // Pass array index to children
-            [node.outputKey]: value, // Pass array item value
-            i: value, // Pass value as 'i'
-            index: i, // Pass numeric index as 'index'
+            [node.outputKey]: value,
+            i: value,
+            index: i,
           };
 
-          for (const child of node.children) {
-            const result = await this.processNode(child, childContext);
-            childOutputs[child.id][i] = result;
-          }
+          node.children.forEach((child) => {
+            const promise = processChild(child, childContext).then(
+              ({ childId, result }) => {
+                childOutputs[childId][i] = result;
+              }
+            );
+            childProcessingPromises.push(promise);
+          });
         }
+
+        await Promise.all(childProcessingPromises);
       } else {
-        // Normal non-array processing
         const childContext = {
           ...context,
           [node.outputKey]: output,
         };
 
-        for (const child of node.children) {
-          childOutputs[child.id] = await this.processNode(child, childContext);
-        }
+        const childProcessingPromises = node.children.map((child) =>
+          processChild(child, childContext).then(({ childId, result }) => {
+            childOutputs[childId] = result;
+          })
+        );
+
+        await Promise.all(childProcessingPromises);
       }
     }
+
     metadata.endTime = Date.now();
     metadata.duration = metadata.endTime - startTime;
 
     return {
       id: node.id,
-      success: true, // Processing status
-      metadata, // Processing metadata
-      raw, // Raw response before processing
-      prompt, //: messages || null, // Prompt messages used in pipeline
-      childOutputs, // Results from child nodes
-      output, // Processed output used in pipeline
+      success: true,
+      metadata,
+      raw,
+      prompt,
+      childOutputs,
+      output,
     };
   }
 
+  async process(tree, initialContext = {}) {
+    // Reset queue stats before starting new process
+    this.queueManager.reset();
+
+    try {
+      return await this.processNode(tree, initialContext);
+    } catch (error) {
+      console.error("Failed to process tree:", error);
+      throw error;
+    }
+  }
   // Centralized prompt preparation
   formatPrompt(template, context, parentContext = {}) {
     console.log("\n🔍 Format prompt:", {
