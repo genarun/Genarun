@@ -1,6 +1,6 @@
 # Genarun - gena.run
 
-**The glue for Generative AI **
+**The glue for Generative AI**
 
 The Genarun system focuses on the assembly of **complex tree** pipelines mixing different generative models.
 
