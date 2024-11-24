@@ -1,8 +1,8 @@
 # Genarun - gena.run
 
-**The glue for Generative AI m**
+**The glue for Generative AI **
 
-The Genarun system focuses on the assembly of complex generative pipelines mixing different models.
+The Genarun system focuses on the assembly of **complex tree** pipelines mixing different generative models.
 
 It can be used to generate data for complete websites and generative datasets.
 
@@ -18,7 +18,7 @@ For a broad range of GenAI projects, it replaces boilerplate code that orchestra
 
 Using the hosted API for free (up to 100 minutes per month), or run the pipeline directly in your environement. It works in the browser, but if it's a public project, the local setup will risk exposing your underlying API keys for OpenAi or Replicate.
 
-## Roadmap
+## Roadmap + ideas
 
 This project is an early draft. The core functionalities are present, but there's lot that could be done to extend its potential.
 
