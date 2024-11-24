@@ -162,70 +162,106 @@ Repository/
 └── readme.md                   // info about project usage, mix of template + generated description
 ```
 
-### Online console for project managment, and running pipelines.
+### Online Console for Project Management
 
-We could use midrun layout style for the UI.
+We could use midrun layout style for the UI. A replicate or github-like UI where users can see their Genas. We could have a store with model adapters from replicate, huggingface, etc. Users could setup keys in their profile.
 
-A replicate or github-like UI where a user can see their Genas.
+The Core lib could run as open source via npm import (@genarun/core). We could also include all the adapters selectively:
 
-We could have a store with model adapters from replicate, huggingface, etc.
+```javascript
+import { replicateAdapter } from "@genarun/adapters";
+```
 
-User could setup keys in their profile.
+### API Client
 
-The Core lib could run as open source. npm import.
-@genarun/core
+Freemium model with automatic API key provision for users. Generous free tier with plenty of FREE minutes per month for generations.
 
-We could also include all the adapters selectively.
+We provide an API client to let users consume the API:
 
-import {replicateAdapter} from @genarun/adapters
-
-# API client
-
-Freemium.
-
-We automatically provide an API key to users.
-
-Free API use, We give a lot of FREE minutes per month for generations.
-
-We provide an API client to let users CONSUME the API
-
-const gena = new GenarunApiClient('apiKey')
+```javascript
+const gena = new GenarunApiClient("apiKey");
 
 const genaLocal = new GenarunLocalClient({
-openaiKey= 124,
-replicateKey:1234
-///other keys, required based on your adapters
-})
+  openaiKey: "124",
+  replicateKey: "1234",
+  // other keys, required based on your adapters
+});
 
-//if you use the local client, the generations process will happen locally and resolve at the end. No support for webhook. You can however monitor progress using the onUpdate: (event) handler in options.
+// If using the local client, generations happen locally and resolve at the end.
+// No webhook support, but progress can be monitored using onUpdate handler.
 
-API needs to wrap the output in a data prop or output. So the dbug detailled response dont force syntax change.
+// API wraps output in data prop for cleaner response handling
+const params = {
+  year: 2025,
+};
 
-ex:
+const options = {
+  tree: "felix/weird",
+  doneHook: "mysite.com/hook/jobdone/132456",
+  onUpdate: (a) => console.log(a), // progress monitoring for local client
+  detailled_response: false, // default false, set true to include logs and raw generations
+};
 
-params = {
-year: 2025,
-}
+const data = await gena.run("felix/weird"); // cleanest
+const runid = gena.start(params, options); // returns a run id
+```
 
-options = {
-tree: 'felix/weird',
-doneHook: mysite.com/hook/jobdone/132456,
-onUpdate: (a) => console.log(a) //progress monitoring if using the local client
-detailled_response: false //default false// output not just the pretty object, but all the logs, read input, and raw generations, useful for debugging
+### Latest TODOs
 
-}
+#### Monorepo Structure
 
-const data = await gena.run('felix/weird') // cleanest
+- Implement monorepo architecture
+- Support both local and hosted deployments
+- Allow users to configure JSON and assets artifact storage location
+- Enable environment variable configuration:
+  - Server-level via .env.example or platform (e.g., Vercel)
+  - URL parameter passing (similar to frontend local storage key management)
 
-runid = gena.start( params, options) // returns a run id.
+#### Components
 
-#### api keys
+- Core: Library compatible with both Node and browser
+- Backend:
+  - Simple file-based job storage
+  - Run job execution
+  - Job and output loading
+  - File artifact viewing
+  - JSON output with image preview tree
+  - Structure consolidation
+- UI:
+  - Project and job management
+  - Tree editing
+  - Selective node execution
+  - Node toggling for test runs
 
-we want the api to be able to work fully on client, no secrets sensitive.
-so we'll let user:
-Whitelist specific domains/origins via CORS
-Require signed requests with timestamps
-Add IP address restrictions where feasible
+#### Input UI and Local Processing
 
-For the web client, we'll just allow it to run, since it's not sharing the openAi or underlying keys, it's triggering stuff, but of less use. We can also add domain restriction or throttle, but to really be safe, it's best to also protect the key.
-The key is read-only, so not mission critical to share it, and limited scope. It can increase your bill at processing providers.
+- Implement parameter input interface for tree testing
+- Add local/remote tree process toggle in UI
+- Develop simple job runner:
+  - Handle POST requests with params + tree
+  - Save JSON and images in organized folders:
+    ```
+    runs/modelid/timestamp/imgs...
+    ```
+  - Project structure:
+    ```
+    projects/weird/
+    ├── weirdpresstree.js
+    └── runs/run12345/
+        ├── output.json
+        ├── logs.json
+        └── assets/
+            └── imgid.png
+    ```
+
+#### API Integration
+
+- Implement frontend to backend communication
+- Handle configuration file transmission
+- Manage API key passing
+- Process input value handling
+
+# License
+
+For now the code is Copyright felix menard.
+Feel free to contact me if you have ideas or plans to make use of this toolkit.
