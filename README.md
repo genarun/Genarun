@@ -90,6 +90,30 @@ This could be good to not only access previous outputs, but see how long each st
 
 Right now, trees need to be built in JSON. It's great for developers and to manipulate using LLMs (internal or external), but there are opportunities to explain the structure much better visually. We could think for example about a nodal system like ComfyUI or TouchDesigner.
 
+Open source libs:
+
+Pretty + popular one:
+https://github.com/xyflow/xyflow
+
+- required react + shadcn
+- Neat for viz as well as editing (ie, processing times per paths, overview diagram)
+
+https://github.com/alyssaxuu/flowy
+
+- too old, but coold ui with nodes + properties panel.
+
+vue
+https://vueflow.dev/examples/
+also vue:
+https://github.com/newcat/baklavajs?tab=readme-ov-file
+demo: https://codesandbox.io/p/sandbox/baklavajs-v2-example-zpfkec
+
+The one used by Comfy:
+https://github.com/jagenjo/litegraph.js
+
+meh:
+https://github.com/emilwidlund/nodl
+
 ### Publishing
 
 #### Templates & Custom Site Generation
